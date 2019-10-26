@@ -106,7 +106,7 @@ void setup() {
   //textFont(createFont("Comic Neue Angular Bold Oblique", 16), 24);
   textFont(createFont("URW Gothic L Book Oblique", 16), 24);
 
-  frameRate(14);
+  frameRate(12);
   nek = new PVector[4];
   for (int i=0; i<4; i++)
     nek[i] = new PVector(0, 0);
