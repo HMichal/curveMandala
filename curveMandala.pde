@@ -1,7 +1,7 @@
 
 // Michal Huller 22.02.2015
 // Drawing Mandala
-// revised on 30.06.2019
+// revised on 20.10.2019
 
 /**
  * 
@@ -13,7 +13,7 @@
  * e                   : end recording PDF and save
  * w                   : toogle background black or white
  * l                   : toogle lines
- * m                   : toogle Mandala
+ * m                   : toogle monochrom/colors
  * t                   : toogle transparent 
  * 1-2                 : 1 - decrease pen width and 2 - increase
  * 3-4                 : 3 - decrease number petals and 4 - increase
@@ -22,13 +22,15 @@
  * s                   : save png
  * c                   : change color in the current pallette
  * p                   : toggle Flower of life on/off
+ * z                   : toggle 3D thread on/off
  */
+import processing.pdf.*;
 
 float agentsAlpha = 90, strokeW = 3;
 int drawMode = 1;
 color bg = 0;
 PImage scrShot;
-PGraphics buf;
+boolean recordPDF = false;
 // color pallette
 color [][]tablePens = {
   {#F98866, #FF420E, #80BD9E, #89DA59, #FFFFFF}, 
@@ -87,6 +89,7 @@ boolean toDraw = false;
 boolean circles = false;
 boolean drawPerch = false;
 boolean thread = true;
+boolean mono = false;
 
 int slices = 12;
 color picolor = 0;
@@ -96,20 +99,18 @@ int pal = 0;
 int pix;
 
 void setup() {
-  size(700, 700); //(1200,676); //(1280,1024); //(900, 506); //size(1280,800,P3D);//16:9
+  size(1200, 1200); //(1200,676); //(1280,1024); //(900, 506); //size(1280,800,P3D);//16:9
   background(bg);
   smooth();
 
   //textFont(createFont("Comic Neue Angular Bold Oblique", 16), 24);
   textFont(createFont("URW Gothic L Book Oblique", 16), 24);
 
-  frameRate(20);
+  frameRate(14);
   nek = new PVector[4];
   for (int i=0; i<4; i++)
     nek[i] = new PVector(0, 0);
 
-  buf = createGraphics(1600, 1600);
-  factor = float(buf.width)/width;
   //noLoop();
   strokeCap(ROUND);
   crPoints = new PVector[100];
@@ -120,16 +121,16 @@ void setup() {
 }
 
 void initit() {  
-  buf.beginDraw();
-  buf.background(bg);
   background(bg);
   if (circles) 
     drawPerch = true;
-  buf.endDraw();
 
   pal = (pal + 1) % tablePens.length;
   pix = 0;
-  picolor = tablePens[pal][pix];
+  if (mono) 
+    SetMono();
+  else
+    picolor = tablePens[pal][pix];
   bottom2top = new color[4];
   wBot2top = new float[4];
   if (transp) {
@@ -142,8 +143,6 @@ void initit() {
 
 void draw() { 
   noFill();
-  buf.noFill();
-  buf.beginDraw();
   /////////////// Mandala //////////////
   if (toDraw) {
     if (crNo >= crPoints.length -4) {
@@ -171,9 +170,6 @@ void DrawCurve() {
     pushMatrix();
     translate(width/2, height/2);
 
-    buf.pushMatrix();
-    buf.translate(buf.width/2, buf.height/2);
-
     for (int ll = 0; ll < fast; ll++) {
       int till = 1;
       if (thread) till = bottom2top.length;
@@ -183,8 +179,6 @@ void DrawCurve() {
         for (int ic=0; ic < till; ic++) {
           stroke(bottom2top[ic]);
           strokeWeight(wBot2top[ic]);
-          buf.stroke(bottom2top[ic]);
-          buf.strokeWeight(wBot2top[ic] *factor);
           beginShape();
           for (int ix = 0; ix < crNo; ix++) {
             PVector mirC = PVector.fromAngle(TWO_PI/slices - crPoints[ix].heading());
@@ -193,23 +187,11 @@ void DrawCurve() {
               mirC.y);
           }
           endShape();
-
-          /*
-          PVector []mirbuf = new PVector[4]; // mirror points of buf
-           for (int i=0; i<4; i++) {
-           mirbuf[i] = PVector.fromAngle(TWO_PI/slices - slbuf[i].heading());
-           mirbuf[i].setMag(slbuf[i].mag());
-           }
-           buf.curve(mirbuf[0].x, mirbuf[0].y, mirbuf[1].x, mirbuf[1].y, 
-           mirbuf[2].x, mirbuf[2].y, mirbuf[3].x, mirbuf[3].y);
-           }*/
         }
       } else {
         for (int ic=0; ic < till; ic++) {
           stroke(bottom2top[ic]);
           strokeWeight(wBot2top[ic]);
-          buf.stroke(bottom2top[ic]);
-          buf.strokeWeight(wBot2top[ic] *factor);
 
           beginShape();
           for (int ix = 0; ix < crNo; ix++) {
@@ -217,18 +199,11 @@ void DrawCurve() {
               crPoints[ix].y);
           }
           endShape();
-          /*
-          buf.curve(slbuf[0].x, slbuf[0].y, slbuf[1].x, slbuf[1].y, 
-           slbuf[2].x, slbuf[2].y, 
-           slbuf[3].x, slbuf[3].y);*/
         }
       }
       rotate(TWO_PI/fast);
-      buf.rotate(TWO_PI/fast);
     }
     popMatrix();
-    buf.popMatrix();
-    buf.endDraw();
     crNo = 0;
   }
 }
@@ -246,11 +221,9 @@ void keyReleased() {
     noFill();
 
     int numR = int(random(5000));
-    String fname="kal_" + year() + month() + day() + "_" + frameCount +"_" + numR + ".png";
-    String bufSave = "h"+fname;
+    String fname="mand_" + year() + month() + day() + "_" + frameCount +"_" + numR + ".png";
     scrShot=get(0, 0, width, height);
     scrShot.save("snapshot/" + fname);
-    buf.save("snapshot/" + bufSave);
   }
   if (key == 't' || key =='T') {
     transp = !transp;
@@ -262,13 +235,23 @@ void keyReleased() {
     DrawCurve();
     SetThreadValues();
   }
+  if (key == 'm' || key =='M') {
+    mono = !mono;
+    DrawCurve();
+    SetMono();
+    SetThreadValues();
+  }
   if (key == '1') {
     strokeW -= 0.3;
     if (strokeW < 0.3) strokeW = 0.3;
+    SetMono();
+    SetThreadValues();
   }
   if (key == '2') {
     strokeW += 0.3;
     if (strokeW > 50) strokeW -= 0.3;
+    SetMono();
+    SetThreadValues();
   }
   if (key == '3') {
     slices -= 2;
@@ -280,23 +263,41 @@ void keyReleased() {
   }
 
   if (key == 'w' || key =='W') {
+    DrawCurve();
     bg = 255 - bg;
     background(bg);
-    buf.beginDraw();
-    buf.background(bg);
+    SetMono();
+    SetThreadValues();
   }
   if (key == 'c' || key =='C') {
-    pix = (pix + 1) % tablePens[0].length;
-    picolor = tablePens[pal][pix];
+    if (!mono) {
+      pix = (pix + 1) % tablePens[0].length;
+      picolor = tablePens[pal][pix];
+    } else SetMono();
     DrawCurve();
     SetThreadValues();
   }
   if (key == 'p' || key =='P') {
-    buf.beginDraw();
     makefl();
   }
-  if (key == 'r' || key =='R') {
+  if (key == 'z' || key =='Z') {
     thread = !thread;
+  }
+  if (key =='r' || key =='R') {
+    if (recordPDF == false) {   
+      beginRecord(PDF, "pdfs/em"+ year() + month() + day() + int(random(4000, 10000))+".pdf");
+      background(bg);
+      redraw();
+      println("recording started");
+      recordPDF = true;
+    }
+  } 
+  if (key == 'e' || key =='E') {
+    if (recordPDF) {
+      println("recording stopped");
+      endRecord();
+      recordPDF = false;
+    }
   }
 }
 
@@ -315,16 +316,11 @@ void makefl() {
 
   if (thread) till = bottom2top.length;
   pushMatrix();
-  buf.pushMatrix();
   translate(width/2, height/2);
-  buf.translate(buf.width/2, buf.height/2);
   for (int ic=0; ic < till; ic++) {
     stroke(bottom2top[ic]);
     strokeWeight(wBot2top[ic]);
-    buf.stroke(bottom2top[ic]);
-    buf.strokeWeight(wBot2top[ic] *factor);
     ellipse(0, 0, koter, koter);
-    buf.ellipse(0, 0, koter* factor, koter*factor);
   }
 
   for (int j=0; j<3; j++) {
@@ -332,40 +328,29 @@ void makefl() {
       for (int ic=0; ic < till; ic++) {
         stroke(bottom2top[ic]);
         strokeWeight(wBot2top[ic]);
-        buf.stroke(bottom2top[ic]);
-        buf.strokeWeight(wBot2top[ic] *factor);
         if (j == 0) {
           ellipse(0, -0.5*koter, koter, koter);
-          buf.ellipse(0, -0.5*koter*factor, koter*factor, koter*factor);
         }
         if (j == 1) {
           ellipse(0, -koter, koter, koter);
-          buf.ellipse(0, -koter*factor, koter*factor, koter*factor);
         }
         if (j == 2) {
           ellipse(0, -sqrt(3)*koter/2, koter, koter);
-          buf.ellipse(0, -sqrt(3)*koter*factor/2, koter*factor, koter*factor);
         }
       }
       rotate(TWO_PI/6);
-      buf.rotate(TWO_PI/6);
     }
     if (j%2 == 1) {
       rotate(TWO_PI/12);
-      buf.rotate(TWO_PI/12);
     }
   }
   for (int ic=0; ic < till; ic++) {
     stroke(bottom2top[ic]);
     strokeWeight(wBot2top[ic]);
-    buf.stroke(bottom2top[ic]);
-    buf.strokeWeight(wBot2top[ic] *factor);
     ellipse(0, 0, 3*koter, 3*koter);
-    buf.ellipse(0, 0, 3*koter*factor, 3*koter*factor);
   }
 
   popMatrix();
-  buf.popMatrix();
 }
 
 void SetThreadValues() {
@@ -381,5 +366,14 @@ void SetThreadValues() {
       bottom2top[ic] = color(picolor, transColor);
       wBot2top[ic] = strokeW;
     }
+  }
+}
+
+void SetMono() {
+  if (mono) {
+    if (bg == 0) 
+      picolor = (#eeeeee);
+    else
+      picolor = (#252525);
   }
 }
