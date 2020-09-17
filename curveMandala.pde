@@ -6,13 +6,12 @@
 /**
  * 
  * KEYS
- * y                   : toogle symmetry
+ * c                   : choose next color
  * s                   : save image as png
  * n                   : new image
  * r                   : start recording PDF
  * e                   : end recording PDF and save
  * w                   : toogle background black or white
- * l                   : toogle lines
  * m                   : toogle monochrom/colors
  * t                   : toogle transparent 
  * 1-2                 : 1 - decrease pen width and 2 - increase
@@ -21,13 +20,12 @@
  * backspace           : clear screen
  * s                   : save png
  * c                   : change color in the current pallette
- * p                   : toggle Flower of life on/off
+ * p                   : draw Flower of life 
  * z                   : toggle 3D thread on/off
  */
 import processing.pdf.*;
 
-float agentsAlpha = 90, strokeW = 3;
-int drawMode = 1;
+float strokeW = 3;
 color bg = 0;
 PImage scrShot;
 boolean recordPDF = false;
